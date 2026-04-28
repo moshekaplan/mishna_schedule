@@ -1,0 +1,104 @@
+{
+  "source": "https://www.mishnah.org/learn/",
+  "sedarim": [
+    {
+      "seder_en": "Zeraim",
+      "seder_he": "זרעים",
+      "mesechtos": [ 
+        {"name_en": "Berachos", "name_he": "ברכות", "mishnayos_count": 57},
+        {"name_en": "Peah", "name_he": "פאה", "mishnayos_count": 69},
+        {"name_en": "Demai", "name_he": "דמאי", "mishnayos_count": 53},
+        {"name_en": "Kilayim", "name_he": "כלאים", "mishnayos_count": 77},
+        {"name_en": "Sheviis", "name_he": "שביעית", "mishnayos_count": 89},
+        {"name_en": "Terumos", "name_he": "תרומות", "mishnayos_count": 101},
+        {"name_en": "Maasros", "name_he": "מעשרות", "mishnayos_count": 40},
+        {"name_en": "Maaser Sheni", "name_he": "מעשר שני", "mishnayos_count": 57},
+        {"name_en": "Challah", "name_he": "חלה", "mishnayos_count": 38},
+        {"name_en": "Orlah", "name_he": "ערלה", "mishnayos_count": 35},
+        {"name_en": "Bikkurim", "name_he": "ביכורים", "mishnayos_count": 39}
+      ]
+    },
+    {
+      "seder_en": "Moed",
+      "seder_he": "מועד",
+      "mesechtos": [
+        {"name_en": "Shabbos", "name_he": "שבת", "mishnayos_count": 139},
+        {"name_en": "Eruvin", "name_he": "עירובין", "mishnayos_count": 96},
+        {"name_en": "Pesachim", "name_he": "פסחים", "mishnayos_count": 89},
+        {"name_en": "Shekalim", "name_he": "שקלים", "mishnayos_count": 52},
+        {"name_en": "Yoma", "name_he": "יומא", "mishnayos_count": 61},
+        {"name_en": "Sukkah", "name_he": "סוכה", "mishnayos_count": 53},
+        {"name_en": "Beitzah", "name_he": "ביצה", "mishnayos_count": 42},
+        {"name_en": "Rosh Hashanah", "name_he": "ראש השנה", "mishnayos_count": 35},
+        {"name_en": "Taanis", "name_he": "תענית", "mishnayos_count": 34},
+        {"name_en": "Megillah", "name_he": "מגילה", "mishnayos_count": 33},
+        {"name_en": "Moed Katan", "name_he": "מועד קטן", "mishnayos_count": 24},
+        {"name_en": "Chagigah", "name_he": "חגיגה", "mishnayos_count": 23}
+      ]
+    },
+    {
+      "seder_en": "Nashim",
+      "seder_he": "נשים",
+      "mesechtos": [
+        {"name_en": "Yevamos", "name_he": "יבמות", "mishnayos_count": 128},
+        {"name_en": "Kesuvos", "name_he": "כתובות", "mishnayos_count": 111},
+        {"name_en": "Nedarim", "name_he": "נדרים", "mishnayos_count": 90},
+        {"name_en": "Nazir", "name_he": "נזיר", "mishnayos_count": 60},
+        {"name_en": "Sotah", "name_he": "סוטה", "mishnayos_count": 67},
+        {"name_en": "Gittin", "name_he": "גיטין", "mishnayos_count": 75},
+        {"name_en": "Kiddushin", "name_he": "קידושין", "mishnayos_count": 47}
+      ]
+    },
+    {
+      "seder_en": "Nezikin",
+      "seder_he": "נזיקין",
+      "mesechtos": [
+        {"name_en": "Bava Kamma", "name_he": "בבא קמא", "mishnayos_count": 79},
+        {"name_en": "Bava Metzia", "name_he": "בבא מציעא", "mishnayos_count": 101},
+        {"name_en": "Bava Basra", "name_he": "בבא בתרא", "mishnayos_count": 86},
+        {"name_en": "Sanhedrin", "name_he": "סנהדרין", "mishnayos_count": 71},
+        {"name_en": "Makkos", "name_he": "מכות", "mishnayos_count": 34},
+        {"name_en": "Shevuos", "name_he": "שבועות", "mishnayos_count": 62},
+        {"name_en": "Eduyos", "name_he": "עדיות", "mishnayos_count": 74},
+        {"name_en": "Avodah Zarah", "name_he": "עבודה זרה", "mishnayos_count": 50},
+        {"name_en": "Avos", "name_he": "אבות", "mishnayos_count": 108},
+        {"name_en": "Horayos", "name_he": "הוריות", "mishnayos_count": 20}
+      ]
+    },
+    {
+      "seder_en": "Kodashim",
+      "seder_he": "קדשים",
+      "mesechtos": [
+        {"name_en": "Zevachim", "name_he": "זבחים", "mishnayos_count": 101},
+        {"name_en": "Menachos", "name_he": "מנחות", "mishnayos_count": 93},
+        {"name_en": "Chullin", "name_he": "חולין", "mishnayos_count": 74},
+        {"name_en": "Bechoros", "name_he": "בכורות", "mishnayos_count": 73},
+        {"name_en": "Eruchin", "name_he": "ערכין", "mishnayos_count": 50},
+        {"name_en": "Temurah", "name_he": "תמורה", "mishnayos_count": 35},
+        {"name_en": "Kerisos", "name_he": "כריתות", "mishnayos_count": 43},
+        {"name_en": "Meilah", "name_he": "מעילה", "mishnayos_count": 38},
+        {"name_en": "Tamid", "name_he": "תמיד", "mishnayos_count": 34},
+        {"name_en": "Middos", "name_he": "מדות", "mishnayos_count": 34},
+        {"name_en": "Kinnim", "name_he": "קינים", "mishnayos_count": 15}
+      ]
+    },
+    {
+      "seder_en": "Taharos",
+      "seder_he": "טהרות",
+      "mesechtos": [
+        {"name_en": "Keilim", "name_he": "כלים", "mishnayos_count": 254},
+        {"name_en": "Oholos", "name_he": "אהלות", "mishnayos_count": 134},
+        {"name_en": "Negaim", "name_he": "נגעים", "mishnayos_count": 115},
+        {"name_en": "Parah", "name_he": "פרה", "mishnayos_count": 96},
+        {"name_en": "Taharos", "name_he": "טהרות", "mishnayos_count": 92},
+        {"name_en": "Mikvaos", "name_he": "מקואות", "mishnayos_count": 71},
+        {"name_en": "Niddah", "name_he": "נדה", "mishnayos_count": 79},
+        {"name_en": "Machshirin", "name_he": "מכשירין", "mishnayos_count": 54},
+        {"name_en": "Zavim", "name_he": "זבים", "mishnayos_count": 32},
+        {"name_en": "Tevul Yom", "name_he": "טבול יום", "mishnayos_count": 26},
+        {"name_en": "Yadayim", "name_he": "ידים", "mishnayos_count": 22},
+        {"name_en": "Uktzin", "name_he": "עוקצים", "mishnayos_count": 28}
+      ]
+    }
+  ]
+}

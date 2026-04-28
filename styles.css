@@ -1,0 +1,807 @@
+/* ============================================================
+   Mishnayos Completion Tracker — styles.css
+   Clean modern CSS, no frameworks, fully responsive
+   ============================================================ */
+
+/* ---------- CSS Custom Properties ---------- */
+:root {
+  --color-bg: #f5f6fa;
+  --color-surface: #ffffff;
+  --color-border: #d1d5db;
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+  --color-primary-light: #dbeafe;
+  --color-secondary: #64748b;
+  --color-success: #16a34a;
+  --color-success-light: #dcfce7;
+  --color-warning: #d97706;
+  --color-warning-light: #fef3c7;
+  --color-danger: #dc2626;
+  --color-danger-light: #fee2e2;
+  --color-text: #1e293b;
+  --color-text-muted: #64748b;
+  --color-text-inverted: #ffffff;
+
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-hebrew: "David", "FrankRuehl", "Tahoma", serif;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-pill: 9999px;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.06);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,.08), 0 4px 6px rgba(0,0,0,.05);
+
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+
+  --transition: 200ms ease;
+  --max-width: 1100px;
+}
+
+/* ---------- Reset ---------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hebrew language overrides */
+body.lang-he {
+  font-family: var(--font-hebrew);
+  direction: rtl;
+}
+
+/* ---------- Accessibility ---------- */
+:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Layout ---------- */
+.container {
+  width: 100%;
+  max-width: var(--max-width);
+  margin-inline: auto;
+  padding-inline: var(--spacing-md);
+  padding-block: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+  flex: 1;
+}
+
+/* ---------- Header ---------- */
+.site-header {
+  background: var(--color-primary);
+  color: var(--color-text-inverted);
+  box-shadow: var(--shadow-md);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-inner {
+  max-width: var(--max-width);
+  margin-inline: auto;
+  padding-inline: var(--spacing-md);
+  padding-block: var(--spacing-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+}
+
+#app-title {
+  font-size: clamp(1.1rem, 3vw, 1.5rem);
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title-he {
+  font-family: var(--font-hebrew);
+  font-size: 0.85em;
+  opacity: 0.85;
+}
+
+.header-controls {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+/* ---------- Footer ---------- */
+.site-footer {
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  padding: var(--spacing-md);
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.site-footer a {
+  color: var(--color-primary);
+}
+
+/* ---------- Card ---------- */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+.card h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 2px solid var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+.section-desc {
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-lg);
+  font-size: 0.9rem;
+}
+
+/* ---------- Buttons ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color var(--transition), box-shadow var(--transition), transform var(--transition);
+  text-decoration: none;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-text-inverted);
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-dark);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  border: 1.5px solid var(--color-primary);
+}
+
+.btn-secondary:hover {
+  background: var(--color-primary-light);
+}
+
+/* ---------- Form Elements ---------- */
+fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+legend {
+  font-weight: 600;
+  padding-inline: var(--spacing-xs);
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+}
+
+.radio-group {
+  display: flex;
+  gap: var(--spacing-lg);
+  flex-wrap: wrap;
+  margin-top: var(--spacing-sm);
+}
+
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.radio-label input[type="radio"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.input-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-lg);
+  max-width: 400px;
+}
+
+.input-panel label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.input-panel input[type="date"],
+.input-panel input[type="number"] {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  background: var(--color-bg);
+  color: var(--color-text);
+  width: 100%;
+}
+
+.input-panel input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+  outline: none;
+}
+
+.input-panel input.invalid {
+  border-color: var(--color-danger);
+}
+
+.hint {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.error-msg {
+  font-size: 0.85rem;
+  color: var(--color-danger);
+  font-weight: 500;
+}
+
+.form-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+/* ---------- Masechtos Grid ---------- */
+.masechtos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.mesechta-card {
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  transition: border-color var(--transition), box-shadow var(--transition);
+  background: var(--color-bg);
+}
+
+.mesechta-card:has(input:focus-within) {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.mesechta-card.completed {
+  border-color: var(--color-success);
+  background: var(--color-success-light);
+}
+
+.mesechta-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+.mesechta-name-he {
+  font-family: var(--font-hebrew);
+  font-size: 1.05rem;
+}
+
+.mesechta-count {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.mesechta-input-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: var(--spacing-xs);
+}
+
+.mesechta-input-wrap label {
+  font-size: 0.78rem;
+  color: var(--color-text-muted);
+}
+
+.mesechta-input-wrap input[type="number"] {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-family: inherit;
+  background: var(--color-surface);
+  color: var(--color-text);
+  width: 100%;
+  transition: border-color var(--transition);
+}
+
+.mesechta-input-wrap input:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+.mesechta-mini-bar-wrap {
+  height: 5px;
+  background: var(--color-border);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  margin-top: var(--spacing-xs);
+}
+
+.mesechta-mini-bar-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: var(--radius-pill);
+  transition: width 300ms ease;
+}
+
+.mesechta-card.completed .mesechta-mini-bar-fill {
+  background: var(--color-success);
+}
+
+/* ---------- Progress Summary (inside settings card) ---------- */
+.progress-summary {
+  margin-top: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+  padding: var(--spacing-sm) 0 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.progress-summary p {
+  margin-bottom: var(--spacing-sm);
+  font-size: 0.9rem;
+}
+
+.progress-bar-wrap {
+  height: 12px;
+  background: var(--color-border);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-success) 100%);
+  border-radius: var(--radius-pill);
+  transition: width 400ms ease;
+}
+
+/* ---------- Schedule Summary Header ---------- */
+.schedule-heading {
+  font-size: 0.95rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-text-muted) !important;
+  border-bottom-color: transparent !important;
+  margin-bottom: var(--spacing-sm) !important;
+  padding-bottom: 0 !important;
+}
+
+.schedule-header-section {
+  padding-block: var(--spacing-md);
+}
+
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--spacing-sm);
+}
+
+.stat-card {
+  background: var(--color-primary-light);
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-align: center;
+}
+
+.stat-card h3 {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-primary-dark);
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stat-value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+  line-height: 1.2;
+}
+
+/* ---------- Seder group header row inside table ---------- */
+tr.seder-group-header td {
+  background: var(--color-primary);
+  color: var(--color-text-inverted);
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-top: none;
+}
+
+tr.seder-group-header--subsequent td {
+  border-top: 3px solid var(--color-primary-dark);
+}
+
+/* ---------- Table Shared Styles ---------- */
+.table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+thead {
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  position: sticky;
+  top: 0;
+}
+
+th {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-weight: 700;
+  text-align: start;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+td {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+tbody tr:hover {
+  background: var(--color-bg);
+}
+
+tr.row-completed td {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+tr.row-today td {
+  background: var(--color-warning-light);
+  font-weight: 700;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge-done {
+  background: var(--color-success-light);
+  color: var(--color-success);
+}
+
+.badge-partial {
+  background: var(--color-warning-light);
+  color: var(--color-warning);
+}
+
+.badge-pending {
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}
+
+/* ---------- Hidden Utility ---------- */
+[hidden] {
+  display: none !important;
+}
+
+/* ---------- Language Spans ---------- */
+/* By default show English, hide Hebrew */
+.lang-he { display: none; }
+.lang-en { display: inline; }
+
+body.lang-he .lang-en { display: none; }
+body.lang-he .lang-he { display: inline; }
+
+/* ---------- Responsive Breakpoints ---------- */
+@media (max-width: 768px) {
+  .card {
+    padding: var(--spacing-md);
+  }
+
+  .header-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .stat-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .radio-group {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+
+  .masechtos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .masechtos-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Seder Disclosure (expandable goal rows) ---------- */
+.seder-goals-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+}
+
+.seder-disclosure {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.seder-disclosure-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg);
+}
+
+.seder-goal-label {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.95rem;
+  gap: var(--spacing-sm);
+}
+
+.seder-progress-text {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  min-width: 6ch;
+  text-align: end;
+}
+
+.seder-toggle-btn {
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 2px 10px;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+  font-size: 0.8rem;
+  flex-shrink: 0;
+  transition: background-color var(--transition), color var(--transition), border-color var(--transition);
+}
+
+.seder-toggle-btn:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary-dark);
+  border-color: var(--color-primary);
+}
+
+.toggle-icon {
+  display: inline-block;
+  transition: transform var(--transition);
+}
+
+.seder-toggle-btn[aria-expanded="true"] .toggle-icon {
+  transform: rotate(180deg);
+}
+
+.seder-mini-bar-wrap {
+  height: 4px;
+  background: var(--color-border);
+}
+
+.seder-mini-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-success) 100%);
+  transition: width 300ms ease;
+}
+
+.seder-masechtos {
+  padding: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+}
+
+.checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--color-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ---------- Mesechta card: mark-complete row ---------- */
+.mesechta-complete-wrap {
+  margin-top: var(--spacing-xs);
+  padding: var(--spacing-xs) 0;
+  border-top: 1px dashed var(--color-border);
+  border-bottom: 1px dashed var(--color-border);
+}
+
+/* ---------- Calculation Summary Callout ---------- */
+.calc-summary {
+  background: var(--color-primary-light);
+  border: 1.5px solid #bfdbfe;
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  font-size: 0.95rem;
+  color: var(--color-primary-dark);
+}
+
+.calc-summary strong {
+  font-size: 1.1rem;
+}
+
+/* ---------- Print / PDF styles ---------- */
+@media print {
+  /* Hide everything except the schedule header and mesechta table */
+  .site-header,
+  .settings-section,
+  .site-footer,
+  .header-controls,
+  .btn {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+    font-size: 11pt;
+  }
+
+  .container {
+    padding: 0;
+    gap: 16pt;
+  }
+
+  .card {
+    border: 1px solid #ccc;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  /* Schedule header is first; no page break needed before it */
+  .schedule-header-section {
+    break-before: avoid;
+  }
+
+  /* Mesechta table follows on same page flow */
+  .mesechta-dates-section {
+    break-before: avoid;
+  }
+
+  .stat-cards {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  table {
+    font-size: 9pt;
+  }
+
+  tr.seder-group-header td {
+    background: #1d4ed8 !important;
+    color: white !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  tr.seder-group-header--subsequent td {
+    border-top: 3px solid #1e3a8a !important;
+  }
+
+  a[href]::after {
+    content: none;
+  }
+}

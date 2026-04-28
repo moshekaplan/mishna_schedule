@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mishnayos Completion Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="site-header" role="banner">
+    <div class="header-inner">
+      <h1 id="app-title">
+        <span class="title-en">Mishnayos Completion Tracker</span>
+        <span class="title-he" aria-hidden="true">מעקב סיום משניות</span>
+      </h1>
+      <div class="header-controls">
+        <button id="lang-toggle" class="btn btn-secondary" aria-label="Toggle language between English and Hebrew" aria-pressed="false">
+          עברית / English
+        </button>
+        <button id="export-pdf" class="btn btn-primary" aria-label="Export schedule as PDF">
+          Export PDF
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ===== MAIN ===== -->
+  <main id="main-content" class="container">
+
+    <!-- SECTION 1: Study Settings -->
+    <section class="card settings-section" aria-labelledby="settings-heading">
+      <h2 id="settings-heading">
+        <span class="lang-en">Study Settings</span>
+        <span class="lang-he" hidden>הגדרות לימוד</span>
+      </h2>
+
+      <form id="settings-form" novalidate>
+        <fieldset>
+          <legend>
+            <span class="lang-en">Schedule Mode</span>
+            <span class="lang-he" hidden>מצב לוח זמנים</span>
+          </legend>
+
+          <div class="radio-group" role="radiogroup" aria-label="Choose schedule mode">
+            <label class="radio-label">
+              <input type="radio" name="schedule-mode" value="daily-pace" id="mode-pace" checked />
+              <span class="lang-en">Daily pace (Mishnayos/day)</span>
+              <span class="lang-he" hidden>קצב יומי (משניות ליום)</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="schedule-mode" value="target-date" id="mode-date" />
+              <span class="lang-en">Target completion date</span>
+              <span class="lang-he" hidden>תאריך יעד לסיום</span>
+            </label>
+          </div>
+        </fieldset>
+
+        <!-- Target Date Panel -->
+        <div id="panel-date" class="input-panel" hidden role="group" aria-labelledby="target-date-label">
+          <label id="target-date-label" for="target-date">
+            <span class="lang-en">Target Completion Date</span>
+            <span class="lang-he" hidden>תאריך סיום יעד</span>
+          </label>
+          <input type="date" id="target-date" name="target-date" aria-describedby="target-date-hint" />
+          <p id="target-date-hint" class="hint">
+            <span class="lang-en">Leave blank to calculate from daily pace instead.</span>
+            <span class="lang-he" hidden>השאר ריק כדי לחשב לפי הקצב היומי.</span>
+          </p>
+          <p id="target-date-error" class="error-msg" role="alert" aria-live="polite" hidden></p>
+        </div>
+
+        <!-- Daily Pace Panel -->
+        <div id="panel-pace" class="input-panel" role="group" aria-labelledby="daily-pace-label">
+          <label id="daily-pace-label" for="daily-pace">
+            <span class="lang-en">Mishnayos per Day</span>
+            <span class="lang-he" hidden>משניות ליום</span>
+          </label>
+          <input type="number" id="daily-pace" name="daily-pace" min="1" max="500" step="1" value="3" aria-describedby="daily-pace-hint" />
+          <p id="daily-pace-hint" class="hint">
+            <span class="lang-en">Enter how many Mishnayos you plan to learn each day.</span>
+            <span class="lang-he" hidden>הכנס כמה משניות אתה מתכנן ללמוד כל יום.</span>
+          </p>
+          <p id="daily-pace-error" class="error-msg" role="alert" aria-live="polite" hidden></p>
+        </div>
+
+        <!-- Seder Goal Selection with expandable mesechta progress -->
+        <fieldset id="seder-goals-fieldset">
+          <legend>
+            <span class="lang-en">Study Goal — Select Sedarim &amp; Track Progress</span>
+            <span class="lang-he" hidden>מטרת הלימוד — בחר סדרים ועקוב התקדמות</span>
+          </legend>
+          <p class="hint">
+            <span class="lang-en">Check a Seder to include it in your goal. Expand to enter completed Mishnayos per Mesechta.</span>
+            <span class="lang-he" hidden>סמן סדר כדי לכלול אותו במטרה. לחץ כדי להרחיב ולהזין משניות שהושלמו לפי מסכת.</span>
+          </p>
+          <div id="seder-goals-list" class="seder-goals-list" role="group" aria-label="Select sedarim for your study goal">
+            <!-- Populated by JS -->
+          </div>
+          <p id="seder-goal-error" class="error-msg" role="alert" aria-live="polite" hidden></p>
+        </fieldset>
+
+        <!-- Overall goal progress bar -->
+        <div class="progress-summary" aria-live="polite">
+          <p>
+            <span class="lang-en">Goal progress: </span>
+            <span class="lang-he" hidden>התקדמות: </span>
+            <strong id="total-completed">0</strong><span> / </span><strong id="total-mishnayos">0</strong>
+            <span class="lang-en"> Mishnayos</span>
+            <span class="lang-he" hidden> משניות</span>
+          </p>
+          <div class="progress-bar-wrap" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="overall-progress-bar-wrap" aria-label="Overall goal progress">
+            <div class="progress-bar-fill" id="overall-progress-bar" style="width:0%"></div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" id="generate-btn" class="btn btn-primary">
+            <span class="lang-en">Calculate Projection</span>
+            <span class="lang-he" hidden>חשב תחזית</span>
+          </button>
+          <button type="button" id="reset-btn" class="btn btn-secondary">
+            <span class="lang-en">Reset All</span>
+            <span class="lang-he" hidden>אפס הכל</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- SECTION 2: Schedule -->
+    <section class="card schedule-header-section" id="schedule-section" aria-labelledby="schedule-heading" hidden>
+      <h2 id="schedule-heading" class="schedule-heading">
+        <span class="lang-en">Schedule</span>
+        <span class="lang-he" hidden>לוח זמנים</span>
+      </h2>
+
+      <div class="stat-cards" role="list">
+        <article class="stat-card" role="listitem">
+          <h3>
+            <span class="lang-en">Remaining Mishnayos</span>
+            <span class="lang-he" hidden>משניות שנותרו</span>
+          </h3>
+          <p class="stat-value" id="stat-remaining">–</p>
+        </article>
+        <article class="stat-card" role="listitem">
+          <h3>
+            <span class="lang-en">Mishnayos / Day</span>
+            <span class="lang-he" hidden>משניות / יום</span>
+          </h3>
+          <p class="stat-value" id="stat-per-day">–</p>
+        </article>
+        <article class="stat-card" role="listitem">
+          <h3>
+            <span class="lang-en">Days Remaining</span>
+            <span class="lang-he" hidden>ימים שנותרו</span>
+          </h3>
+          <p class="stat-value" id="stat-days">–</p>
+        </article>
+        <article class="stat-card" role="listitem">
+          <h3>
+            <span class="lang-en">Projected End Date</span>
+            <span class="lang-he" hidden>תאריך סיום משוער</span>
+          </h3>
+          <p class="stat-value" id="stat-end-date">–</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- SECTION 4: Per-Mesechta Completion Dates -->
+    <section class="card mesechta-dates-section" id="mesechta-dates-section" aria-labelledby="dates-heading" hidden>
+      <h2 id="dates-heading">
+        <span class="lang-en">Projected Completion Dates by Mesechta</span>
+        <span class="lang-he" hidden>תאריכי סיום משוערים לפי מסכת</span>
+      </h2>
+
+      <!-- Calculation summary shown above the table -->
+      <div id="calc-summary" class="calc-summary" hidden aria-live="polite">
+        <p>
+          <span class="lang-en"></span>
+          <span class="lang-he" hidden></span>
+        </p>
+      </div>
+
+      <div class="table-wrapper" role="region" aria-label="Mesechta completion dates table" tabindex="0">
+        <table id="mesechta-table" aria-describedby="dates-heading">
+          <thead>
+            <tr>
+              <th scope="col">
+                <span class="lang-en">Mesechta</span>
+                <span class="lang-he" hidden>מסכת</span>
+              </th>
+              <th scope="col">
+                <span class="lang-en">Total</span>
+                <span class="lang-he" hidden>סה"כ</span>
+              </th>
+              <th scope="col">
+                <span class="lang-en">Est. Completion</span>
+                <span class="lang-he" hidden>סיום משוער</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="mesechta-table-body">
+            <!-- Populated by JS -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="site-footer" role="contentinfo">
+    <p>
+      <span class="lang-en">Mishnayos Tracker — Data sourced from <a href="https://www.mishnah.org/learn/" rel="noopener noreferrer" target="_blank">mishnah.org</a></span>
+      <span class="lang-he" hidden>מעקב משניות — נתונים ממקור <a href="https://www.mishnah.org/learn/" rel="noopener noreferrer" target="_blank">mishnah.org</a></span>
+    </p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
