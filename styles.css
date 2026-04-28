@@ -748,6 +748,7 @@ tr.row-today td {
   .settings-section,
   .site-footer,
   .header-controls,
+  #export-pdf,
   .btn {
     display: none !important;
   }
@@ -795,6 +796,12 @@ tr.row-today td {
 
   tr.seder-group-header--subsequent td {
     border-top: 3px solid #1e3a8a !important;
+  }
+
+  /* Always show result sections regardless of [hidden] attribute */
+  #schedule-section,
+  #mesechta-dates-section {
+    display: block !important;
   }
 
   a[href]::after {

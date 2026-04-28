@@ -132,6 +132,7 @@ const state = {
   scheduleMode: "daily-pace",  targetDate: null,
   dailyPace: 3,
   isHebrew: false,
+  hebrewNames: false,
   activeSederIndex: 0,
   // Set of seder indices included in the study goal (default: all)
   selectedSedarim: new Set(MISHNA_DATA.sedarim.map((_, i) => i))
@@ -425,7 +426,7 @@ const Renderer = (() => {
       els.statRemaining.textContent = "0";
       els.statPerDay.textContent    = "–";
       els.statDays.textContent      = "–";
-      els.statEndDate.textContent   = state.isHebrew ? "הושלם! 🎉" : "Complete! 🎉";
+      els.statEndDate.innerHTML = `<span class="lang-en"${state.isHebrew ? " hidden" : ""}>Complete! 🎉</span><span class="lang-he"${state.isHebrew ? "" : " hidden"}>הושלם! 🎉</span>`;
       if (els.calcSummary) els.calcSummary.hidden = true;
     } else {
       els.statRemaining.textContent = result.remaining.toLocaleString();
@@ -476,12 +477,12 @@ const Renderer = (() => {
     let isFirst = true;
     groups.forEach((masechtos, sederIdx) => {
       const seder = MISHNA_DATA.sedarim[sederIdx];
-      const sederName = state.isHebrew ? seder.seder_he : seder.seder_en;
 
       // Seder group header row (spans all 3 data columns)
       const groupTr = document.createElement("tr");
       groupTr.className = "seder-group-header" + (isFirst ? "" : " seder-group-header--subsequent");
-      groupTr.innerHTML = `<td colspan="3">${escapeHtml(sederName)}</td>`;
+      const showHebNames = state.isHebrew || state.hebrewNames;
+      groupTr.innerHTML = `<td colspan="3"><span class="name-en"${showHebNames ? " hidden" : ""}>${escapeHtml(seder.seder_en)}</span><span class="name-he"${showHebNames ? "" : " hidden"}>${escapeHtml(seder.seder_he)}</span></td>`;
       els.mesechtaTableBody.appendChild(groupTr);
       isFirst = false;
 
@@ -492,17 +493,15 @@ const Renderer = (() => {
 
         let completionText;
         if (p.alreadyDone) {
-          completionText = `<span class="badge badge-done">${state.isHebrew ? "הושלם" : "Done ✓"}</span>`;
+          completionText = `<span class="badge badge-done"><span class="lang-en"${state.isHebrew ? " hidden" : ""}>Done ✓</span><span class="lang-he"${state.isHebrew ? "" : " hidden"}>הושלם</span></span>`;
         } else if (p.completionDate) {
           completionText = `<span class="badge badge-pending">${Calculator.formatDate(p.completionDate)}</span>`;
         } else {
           completionText = "–";
         }
 
-        const mesechtaName = state.isHebrew ? p.name_he : p.name_en;
-
         tr.innerHTML = `
-          <td><strong>${escapeHtml(mesechtaName)}</strong></td>
+          <td><strong><span class="name-en"${showHebNames ? " hidden" : ""}>${escapeHtml(p.name_en)}</span><span class="name-he"${showHebNames ? "" : " hidden"}>${escapeHtml(p.name_he)}</span></strong></td>
           <td>${p.mishnayos_count}</td>
           <td>${completionText}</td>
         `;
@@ -549,8 +548,6 @@ const Renderer = (() => {
 const Language = (() => {
 
   function applyLanguage() {
-    //document.querySelectorAll('.lang-en').forEach(el => el.hidden = state.isHebrew);
-    //document.querySelectorAll('.lang-he').forEach(el => el.hidden = !state.isHebrew);
     if (state.isHebrew) {
       document.body.classList.add("lang-he");
       document.documentElement.setAttribute("lang", "he");
@@ -563,10 +560,16 @@ const Language = (() => {
       document.getElementById("lang-toggle").setAttribute("aria-pressed", "false");
     }
 
-    // Re-render UI that depends on language
-    Main.renderSederGoalCheckboxes();
-    // Reattach input listeners after re-rendering
-    Main.attachGridInputListeners();
+    // Toggle the `hidden` attribute on all language spans so that
+    // [hidden] { display: none !important } doesn't block CSS language rules.
+    document.querySelectorAll(".lang-he").forEach(el => el.toggleAttribute("hidden", !state.isHebrew));
+    document.querySelectorAll(".lang-en").forEach(el => el.toggleAttribute("hidden", state.isHebrew));
+
+    // Name spans are independent of UI language: show Hebrew names when
+    // either full-Hebrew mode is active or the Hebrew-names toggle is on.
+    const showHebrewNames = state.isHebrew || state.hebrewNames;
+    document.querySelectorAll(".name-he").forEach(el => el.toggleAttribute("hidden", !showHebrewNames));
+    document.querySelectorAll(".name-en").forEach(el => el.toggleAttribute("hidden",  showHebrewNames));
   }
 
   function toggle() {
@@ -578,11 +581,200 @@ const Language = (() => {
 })();
 
 /* ============================================================
-   6. PDF — Export via browser print dialog
+   6. SHARE — Encode / decode state as a URL GET parameter
+   ============================================================ */
+
+const Share = (() => {
+  const PARAM = "s";
+
+  /**
+   * Serialises the current user inputs into a plain object,
+   * JSON-encodes it, then base64url-encodes the result.
+   * Only primitive/whitelisted values are included — no HTML, no DOM.
+   */
+  function encode() {
+    const payload = {
+      mode:      state.scheduleMode,
+      pace:      state.dailyPace,
+      date:      (() => {
+                   if (state.scheduleMode !== "target-date") return null;
+                   // Read directly from the input to avoid UTC timezone shift
+                   const v = document.getElementById("target-date").value;
+                   return v || null;
+                 })(),
+      sedarim:   Array.from(state.selectedSedarim),
+      counts:    state.completedCounts,
+      hebrew:    state.isHebrew,
+      heNames:   state.hebrewNames,
+    };
+    const json = JSON.stringify(payload);
+    // btoa requires a binary string; encode via encodeURIComponent first.
+    return btoa(unescape(encodeURIComponent(json)));
+  }
+
+  /**
+   * Decodes the base64url parameter and validates every field strictly
+   * before touching any DOM or state.  No value from the URL is ever
+   * inserted as HTML — only assigned to typed state properties or
+   * set as .value / .checked on specific inputs.
+   *
+   * @returns {object|null} validated payload or null on any error
+   */
+  function decode(encoded) {
+    try {
+      const json = decodeURIComponent(escape(atob(encoded)));
+      const p = JSON.parse(json);
+
+      // --- strict validation of every field ---
+      if (typeof p !== "object" || p === null) return null;
+
+      // scheduleMode
+      if (p.mode !== "daily-pace" && p.mode !== "target-date") return null;
+
+      // dailyPace: integer 1–500
+      const pace = parseInt(p.pace, 10);
+      if (!Number.isInteger(pace) || pace < 1 || pace > 500) return null;
+
+      // targetDate: YYYY-MM-DD or null
+      let targetDate = null;
+      if (p.date !== null) {
+        if (typeof p.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(p.date)) return null;
+        targetDate = new Date(p.date + "T00:00:00");
+        if (isNaN(targetDate.getTime())) return null;
+      }
+
+      // selectedSedarim: array of valid seder indices
+      if (!Array.isArray(p.sedarim)) return null;
+      const maxSederIdx = MISHNA_DATA.sedarim.length - 1;
+      const sedarim = new Set();
+      for (const idx of p.sedarim) {
+        if (!Number.isInteger(idx) || idx < 0 || idx > maxSederIdx) return null;
+        sedarim.add(idx);
+      }
+
+      // completedCounts: object with "N-N" keys and integer values
+      if (typeof p.counts !== "object" || p.counts === null || Array.isArray(p.counts)) return null;
+      const counts = {};
+      for (const [key, val] of Object.entries(p.counts)) {
+        // key must match "sederIdx-mesechtaIdx" for a real mesechta
+        if (!/^\d+-\d+$/.test(key)) return null;
+        const [si, mi] = key.split("-").map(Number);
+        const mesechta = ALL_MASECHTOS.find(m => m.sederIdx === si && m.mesechtaIdx === mi);
+        if (!mesechta) return null;
+        const count = parseInt(val, 10);
+        if (!Number.isInteger(count) || count < 0 || count > mesechta.mishnayos_count) return null;
+        counts[key] = count;
+      }
+
+      // boolean flags
+      const isHebrew  = p.hebrew  === true;
+      const hebrewNames = p.heNames === true;
+
+      return { mode: p.mode, pace, targetDate, sedarim, counts, isHebrew, hebrewNames };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /**
+   * Applies a decoded payload to the app state and DOM inputs.
+   * Must be called after renderSederGoalCheckboxes() so inputs exist.
+   */
+  function applyPayload(payload) {
+    state.scheduleMode  = payload.mode;
+    state.dailyPace     = payload.pace;
+    state.targetDate    = payload.targetDate;
+    state.selectedSedarim = payload.sedarim;
+    state.completedCounts = payload.counts;
+    state.isHebrew      = payload.isHebrew;
+    state.hebrewNames   = payload.hebrewNames;
+
+    // Sync DOM inputs — all assignments go through .value / .checked, never innerHTML
+    const modeRadio = document.querySelector(`input[name="schedule-mode"][value="${payload.mode}"]`);
+    if (modeRadio) modeRadio.checked = true;
+
+    document.getElementById("daily-pace").value = String(payload.pace);
+
+    if (payload.targetDate) {
+      document.getElementById("target-date").value = payload.targetDate.toISOString().split("T")[0];
+    }
+
+    const nameLangVal = payload.hebrewNames ? "hebrew" : "english";
+    const nameLangRadio = document.querySelector(`input[name="name-lang"][value="${nameLangVal}"]`);
+    if (nameLangRadio) nameLangRadio.checked = true;
+
+    // Seder checkboxes
+    MISHNA_DATA.sedarim.forEach((_, idx) => {
+      const cb = document.getElementById(`sg-${idx}`);
+      if (cb) cb.checked = payload.sedarim.has(idx);
+    });
+
+    // Mesechta number inputs
+    for (const [key, count] of Object.entries(payload.counts)) {
+      const input = document.getElementById(`mc-${key}`);
+      if (input) input.value = String(count);
+    }
+  }
+
+  /** Builds a shareable URL and copies it to the clipboard. */
+  function copyShareLink() {
+    const encoded = encode();
+    const url = new URL(window.location.href);
+    url.search = "";          // clear any existing params
+    url.searchParams.set(PARAM, encoded);
+
+    const shareBtn = document.getElementById("share-schedule");
+
+    navigator.clipboard.writeText(url.toString()).then(() => {
+      const originalText = shareBtn.querySelector(".lang-en").textContent;
+      shareBtn.querySelector(".lang-en").textContent = "Link Copied!";
+      shareBtn.querySelector(".lang-he").textContent = "הקישור הועתק!";
+      setTimeout(() => {
+        shareBtn.querySelector(".lang-en").textContent = originalText;
+        shareBtn.querySelector(".lang-he").textContent = "שתף לוח זמנים";
+      }, 2000);
+    }).catch(() => {
+      // Fallback: prompt with URL for browsers that block clipboard access
+      window.prompt("Copy this link:", url.toString());
+    });
+  }
+
+  /**
+   * Reads the URL parameter on page load, decodes and validates it,
+   * then returns the payload (or null).
+   */
+  function loadFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const encoded = params.get(PARAM);
+    if (!encoded) return null;
+    return decode(encoded);
+  }
+
+  return { copyShareLink, loadFromUrl, applyPayload };
+})();
+
+/* ============================================================
+   7. PDF — Export via browser print dialog
    ============================================================ */
 
 const PDF = (() => {
   function exportSchedule() {
+    const scheduleEl   = document.getElementById("schedule-section");
+    const mesechtaEl  = document.getElementById("mesechta-dates-section");
+    const scheduleWasHidden  = scheduleEl.hidden;
+    const mesechtaWasHidden  = mesechtaEl.hidden;
+
+    // Temporarily reveal both result sections so [hidden] { display:none !important }
+    // doesn't suppress them during printing.
+    scheduleEl.hidden  = false;
+    mesechtaEl.hidden  = false;
+
+    function restore() {
+      scheduleEl.hidden  = scheduleWasHidden;
+      mesechtaEl.hidden  = mesechtaWasHidden;
+      window.removeEventListener("afterprint", restore);
+    }
+    window.addEventListener("afterprint", restore);
     window.print();
   }
   return { exportSchedule };
@@ -655,7 +847,8 @@ const Main = (() => {
       });
 
       const nameSpan = document.createElement("span");
-      nameSpan.innerHTML = `<span class="lang-en">${seder.seder_en}</span><span class="lang-he" ${state.isHebrew ? "" : "hidden"}>${seder.seder_he}</span>`;
+      const showHebrewNamesNow = state.isHebrew || state.hebrewNames;
+      nameSpan.innerHTML = `<span class="name-en"${showHebrewNamesNow ? " hidden" : ""}>${seder.seder_en}</span><span class="name-he"${showHebrewNamesNow ? "" : " hidden"}>${seder.seder_he}</span>`;
 
       goalLabel.appendChild(cb);
       goalLabel.appendChild(nameSpan);
@@ -716,9 +909,10 @@ const Main = (() => {
         card.className = `mesechta-card${isDone ? " completed" : ""}`;
         card.setAttribute("aria-label", `${m.name_en}: ${completed} of ${m.mishnayos_count} completed`);
 
+        const showHebNow = state.isHebrew || state.hebrewNames;
         card.innerHTML = `
-          <div class="mesechta-name lang-en">${m.name_en}</div>
-          <div class="mesechta-name mesechta-name-he lang-he" ${state.isHebrew ? "" : "hidden"}>${m.name_he}</div>
+          <div class="mesechta-name name-en"${showHebNow ? " hidden" : ""}>${m.name_en}</div>
+          <div class="mesechta-name mesechta-name-he name-he"${showHebNow ? "" : " hidden"}>${m.name_he}</div>
           <div class="mesechta-count lang-en">${m.mishnayos_count} Mishnayos</div>
           <div class="mesechta-count lang-he" ${state.isHebrew ? "" : "hidden"}>${m.mishnayos_count} משניות</div>
           <label class="mesechta-complete-wrap checkbox-label" for="mc-done-${key}">
@@ -914,31 +1108,46 @@ const Main = (() => {
     if (result.done) {
       Renderer.renderDashboard(result);
       Renderer.setVisible(Renderer.els.mesechtaDatesSection, false);
+      document.getElementById("export-pdf").hidden = false;
+      document.getElementById("share-schedule").hidden = false;
       return;
     }
 
     Renderer.renderDashboard(result);
     Renderer.renderCalcSummary(result);
     Renderer.renderMesechtaTable(result.mesechtaProjections);
+    document.getElementById("export-pdf").hidden = false;
+    document.getElementById("share-schedule").hidden = false;
 
-    // Scroll dashboard into view
-    Renderer.els.dashboardSection.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Scroll down until the form-actions row is just below the sticky header,
+    // but only if we need to scroll down — never scroll back up.
+    const formActions = document.querySelector(".form-actions");
+    const header = document.querySelector(".site-header");
+    const headerHeight = header ? header.offsetHeight : 0;
+    const targetScrollY = formActions.getBoundingClientRect().top + window.scrollY - headerHeight;
+    if (window.scrollY < targetScrollY) {
+      window.scrollTo({ top: targetScrollY, behavior: "smooth" });
+    }
   }
 
   /** Resets all progress and clears the UI */
   function handleReset() {
+    document.getElementById("export-pdf").hidden = true;
+    document.getElementById("share-schedule").hidden = true;
     state.completedCounts = {};
     state.targetDate = null;
     state.dailyPace = 3;
-    state.scheduleMode = "target-date";
+    state.scheduleMode = "daily-pace";
     state.activeSederIndex = -1;
+    state.hebrewNames = false;
     // Reset goal to all sedarim selected
     state.selectedSedarim = new Set(MISHNA_DATA.sedarim.map((_, i) => i));
 
     // Reset form fields
     document.getElementById("target-date").value = "";
     document.getElementById("daily-pace").value = "3";
-    document.querySelector('input[name="schedule-mode"][value="target-date"]').checked = true;
+    document.querySelector('input[name="schedule-mode"][value="daily-pace"]').checked = true;
+    document.querySelector('input[name="name-lang"][value="english"]').checked = true;
     handleModeChange();
 
     Renderer.clearErrors();
@@ -956,7 +1165,6 @@ const Main = (() => {
     // Render static UI
     renderSederGoalCheckboxes();
     attachGridInputListeners();
-    Renderer.renderProgressSummary();
 
     // Set min date for target date input to tomorrow
     const tomorrow = new Date();
@@ -980,8 +1188,51 @@ const Main = (() => {
     // Language toggle
     document.getElementById("lang-toggle").addEventListener("click", Language.toggle);
 
+    // Name language radios
+    document.querySelectorAll('input[name="name-lang"]').forEach(radio => {
+      radio.addEventListener("change", () => {
+        // Preserve which seder panels are currently expanded
+        const expandedSeders = new Set();
+        MISHNA_DATA.sedarim.forEach((_, idx) => {
+          const panel = document.getElementById(`seder-masechtos-${idx}`);
+          if (panel && !panel.hidden) expandedSeders.add(idx);
+        });
+
+        state.hebrewNames = document.querySelector('input[name="name-lang"]:checked').value === "hebrew";
+        Language.applyLanguage();
+        Main.renderSederGoalCheckboxes();
+        Main.attachGridInputListeners();
+
+        // Restore expanded state
+        expandedSeders.forEach(idx => {
+          const panel = document.getElementById(`seder-masechtos-${idx}`);
+          const toggleBtn = document.querySelector(`[aria-controls="seder-masechtos-${idx}"]`);
+          if (panel && toggleBtn) {
+            panel.hidden = false;
+            toggleBtn.setAttribute("aria-expanded", "true");
+          }
+        });
+      });
+    });
+
     // PDF export
     document.getElementById("export-pdf").addEventListener("click", PDF.exportSchedule);
+
+    // Share schedule
+    document.getElementById("share-schedule").addEventListener("click", Share.copyShareLink);
+
+    // Load shared state from URL AFTER all event listeners are attached,
+    // so requestSubmit() correctly triggers handleGenerate.
+    const sharedPayload = Share.loadFromUrl();
+    if (sharedPayload) {
+      Share.applyPayload(sharedPayload);
+      Language.applyLanguage();
+      handleModeChange();
+      Renderer.renderProgressSummary();
+      document.getElementById("settings-form").requestSubmit();
+    } else {
+      Renderer.renderProgressSummary();
+    }
   }
 
   return { init, attachGridInputListeners, renderSederGoalCheckboxes };

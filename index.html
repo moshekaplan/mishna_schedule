@@ -19,9 +19,6 @@
         <button id="lang-toggle" class="btn btn-secondary" aria-label="Toggle language between English and Hebrew" aria-pressed="false">
           עברית / English
         </button>
-        <button id="export-pdf" class="btn btn-primary" aria-label="Export schedule as PDF">
-          Export PDF
-        </button>
       </div>
     </div>
   </header>
@@ -32,7 +29,7 @@
     <!-- SECTION 1: Study Settings -->
     <section class="card settings-section" aria-labelledby="settings-heading">
       <h2 id="settings-heading">
-        <span class="lang-en">Study Settings</span>
+        <span class="lang-en">Schedule Settings</span>
         <span class="lang-he" hidden>הגדרות לימוד</span>
       </h2>
 
@@ -85,6 +82,25 @@
           <p id="daily-pace-error" class="error-msg" role="alert" aria-live="polite" hidden></p>
         </div>
 
+        <fieldset>
+          <legend>
+            <span class="lang-en">Mesechta Language</span>
+            <span class="lang-he" hidden>שפת השמות</span>
+          </legend>
+          <div class="radio-group" role="radiogroup" aria-label="Choose mesechta name language">
+            <label class="radio-label">
+              <input type="radio" name="name-lang" value="english" id="names-en" checked />
+              <span class="lang-en">English</span>
+              <span class="lang-he" hidden>אנגלית</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="name-lang" value="hebrew" id="names-he" />
+              <span class="lang-en">Hebrew</span>
+              <span class="lang-he" hidden>עברית</span>
+            </label>
+          </div>
+        </fieldset>
+
         <!-- Seder Goal Selection with expandable mesechta progress -->
         <fieldset id="seder-goals-fieldset">
           <legend>
@@ -119,6 +135,14 @@
           <button type="submit" id="generate-btn" class="btn btn-primary">
             <span class="lang-en">Create Schedule</span>
             <span class="lang-he" hidden>צור לוח זמנים</span>
+          </button>
+          <button type="button" id="export-pdf" class="btn btn-primary" aria-label="Export schedule as PDF" hidden>
+            <span class="lang-en">Export PDF</span>
+            <span class="lang-he" hidden>ייצוא PDF</span>
+          </button>
+          <button type="button" id="share-schedule" class="btn btn-secondary" aria-label="Copy share link to clipboard" hidden>
+            <span class="lang-en">Share Schedule</span>
+            <span class="lang-he" hidden>שתף לוח זמנים</span>
           </button>
           <button type="button" id="reset-btn" class="btn btn-secondary">
             <span class="lang-en">Reset All</span>
@@ -212,8 +236,8 @@
   <!-- ===== FOOTER ===== -->
   <footer class="site-footer" role="contentinfo">
     <p>
-      <span class="lang-en">Mishnayos Tracker — Data sourced from <a href="https://www.mishnah.org/learn/" rel="noopener noreferrer" target="_blank">mishnah.org</a></span>
-      <span class="lang-he" hidden>מעקב משניות — נתונים ממקור <a href="https://www.mishnah.org/learn/" rel="noopener noreferrer" target="_blank">mishnah.org</a></span>
+      <span class="lang-en">Mishnayos Schedule Builder — Created by Moshe Kaplan</span>
+      <span class="lang-he" hidden>בונה לוח זמנים למשניות — נוצר על ידי משה קפלן</span>
     </p>
   </footer>
 
