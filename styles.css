@@ -573,12 +573,8 @@ tr.row-today td {
 }
 
 /* ---------- Language Spans ---------- */
-/* By default show English, hide Hebrew */
-.lang-he { display: none; }
-.lang-en { display: inline; }
-
-body.lang-he .lang-en { display: none; }
-body.lang-he .lang-he { display: inline; }
+/* Visibility is controlled via the HTML `hidden` attribute,
+   toggled by applyLanguage() in app.js. No CSS rules needed. */
 
 /* ---------- Responsive Breakpoints ---------- */
 @media (max-width: 768px) {

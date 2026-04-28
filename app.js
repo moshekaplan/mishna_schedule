@@ -549,6 +549,8 @@ const Renderer = (() => {
 const Language = (() => {
 
   function applyLanguage() {
+    //document.querySelectorAll('.lang-en').forEach(el => el.hidden = state.isHebrew);
+    //document.querySelectorAll('.lang-he').forEach(el => el.hidden = !state.isHebrew);
     if (state.isHebrew) {
       document.body.classList.add("lang-he");
       document.documentElement.setAttribute("lang", "he");
