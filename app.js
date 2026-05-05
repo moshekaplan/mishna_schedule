@@ -1886,6 +1886,21 @@ const Main = (() => {
         };
       }
     });
+
+    // Preserve fully complete mesechtos marked via the checkbox even though
+    // the selector UI is limited to actual mishnayos.
+    document.querySelectorAll("[data-complete-key]").forEach(cb => {
+      const key = cb.dataset.completeKey;
+      if (!cb.checked) return;
+      const [si, mi] = key.split("-").map(Number);
+      const mesechta = ALL_MASECHTOS.find(m => m.sederIdx === si && m.mesechtaIdx === mi);
+      if (!mesechta) return;
+      const lastPerekData = mesechta.perakim[mesechta.perakim.length - 1];
+      state.completedProgress[key] = {
+        perek: lastPerekData.perek,
+        mishna: lastPerekData.mishnayos + 1
+      };
+    });
   }
 
   /**
