@@ -1458,8 +1458,17 @@ const Renderer = (() => {
     const perDayStr = result.perDay % 1 === 0
       ? result.perDay.toString()
       : result.perDay.toFixed(1);
-    const enText = `${result.remaining.toLocaleString()} remaining Mishnayos ÷ ${result.totalDays.toLocaleString()} days = <strong>${perDayStr} Mishnayos / day</strong>`;
-    const heText = `${result.remaining.toLocaleString()} משניות שנותרו ÷ ${result.totalDays.toLocaleString()} ימים = <strong>${perDayStr} משניות / יום</strong>`;
+
+    let enText;
+    let heText;
+    if (state.scheduleMode === "daily-pace") {
+      enText = `${result.remaining.toLocaleString()} remaining Mishnayos ÷ ${perDayStr} Mishnayos / day = <strong>${result.totalDays.toLocaleString()} days</strong>`;
+      heText = `${result.remaining.toLocaleString()} משניות שנותרו ÷ ${perDayStr} משניות / יום = <strong>${result.totalDays.toLocaleString()} ימים</strong>`;
+    } else {
+      enText = `${result.remaining.toLocaleString()} remaining Mishnayos ÷ ${result.totalDays.toLocaleString()} days = <strong>${perDayStr} Mishnayos / day</strong>`;
+      heText = `${result.remaining.toLocaleString()} משניות שנותרו ÷ ${result.totalDays.toLocaleString()} ימים = <strong>${perDayStr} משניות / יום</strong>`;
+    }
+
     els.calcSummary.querySelector(".lang-en").innerHTML = enText;
     els.calcSummary.querySelector(".lang-he").innerHTML = heText;
     els.calcSummary.hidden = false;
