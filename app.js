@@ -1105,6 +1105,7 @@ const state = {
   dailyPace: 3,
   isHebrew: false,
   hebrewNames: false,
+  includePerPerekSchedule: false,
   activeSederIndex: 0,
   // Set of seder indices included in the study goal (default: all)
   selectedSedarim: new Set(MISHNA_DATA.sedarim.map((_, i) => i))
@@ -1152,10 +1153,6 @@ const Calculator = (() => {
     // Add mishnayos from the current perek (mishna is 1-indexed, represents "up to" not completed)
     const currentPerekData = mesechta.perakim.find(x => x.perek === progress.perek);
     if (currentPerekData) {
-      // Special case: if at the last mishna of the last perek, consider it complete for projections
-      if (progress.perek === mesechta.perakim.length && progress.mishna === currentPerekData.mishnayos) {
-        return mesechta.mishnayos_count;
-      }
       // If mishna is beyond the last mishna of the last perek, consider it complete
       if (progress.perek === mesechta.perakim.length && progress.mishna > currentPerekData.mishnayos) {
         return mesechta.mishnayos_count;
@@ -1240,39 +1237,68 @@ const Calculator = (() => {
    */
   function projectMesechtaDates(perDay) {
     const today = toMidnight(new Date());
-    // Only project for masechtos in the selected sedarim
     const goalMasechtos = getGoalMasechtos();
+    const blocks = [];
+
+    goalMasechtos.forEach(m => {
+      const key = `${m.sederIdx}-${m.mesechtaIdx}`;
+      const progress = state.completedProgress[key] || { perek: 1, mishna: 1 };
+      const lastPerek = m.perakim[m.perakim.length - 1].perek;
+
+      m.perakim.forEach(perekData => {
+        const perek = perekData.perek;
+        let remaining = perekData.mishnayos;
+        let alreadyDone = false;
+
+        if (progress.perek > perek) {
+          remaining = 0;
+          alreadyDone = true;
+        } else if (progress.perek === perek) {
+          const completedInPerek = Math.max(0, progress.mishna - 1);
+          remaining = Math.max(0, perekData.mishnayos - completedInPerek);
+          alreadyDone = remaining === 0;
+        }
+
+        if (progress.perek === lastPerek && progress.mishna > perekData.mishnayos && perek === lastPerek) {
+          remaining = 0;
+          alreadyDone = true;
+        }
+
+        blocks.push({
+          ...m,
+          key,
+          perek,
+          mishnayos: perekData.mishnayos,
+          remaining,
+          alreadyDone
+        });
+      });
+    });
+
+    let cumulativeRemaining = 0;
+    const blockResults = blocks.map(block => {
+      let completionDate = null;
+      if (block.remaining > 0 && perDay > 0) {
+        cumulativeRemaining += block.remaining;
+        completionDate = addDays(today, Math.ceil(cumulativeRemaining / perDay));
+      }
+      return { ...block, completionDate };
+    });
 
     return goalMasechtos.map(m => {
+      const key = `${m.sederIdx}-${m.mesechtaIdx}`;
+      const perakim = blockResults.filter(b => b.key === key);
+      const remaining = perakim.reduce((sum, x) => sum + x.remaining, 0);
       const completed = getCompleted(m.sederIdx, m.mesechtaIdx);
-      let remaining = m.mishnayos_count - completed;
-
-      // Special case: if user has selected the last mishna, treat as complete for projections
-      const progress = state.completedProgress[`${m.sederIdx}-${m.mesechtaIdx}`];
-      if (progress && progress.perek === m.perakim.length) {
-        const lastPerekData = m.perakim[m.perakim.length - 1];
-        if (progress.mishna === lastPerekData.mishnayos) {
-          remaining = 0;
-        }
-      }
-
-      return { ...m, completed, remaining };
-    }).map((m, idx, arr) => {
-      // Cumulative remaining up to and including this mesechta
-      const cumulativeRemaining = arr
-        .slice(0, idx + 1)
-        .reduce((sum, x) => sum + x.remaining, 0);
-
-      let completionDate = null;
-      if (m.remaining > 0 && perDay > 0) {
-        const daysNeeded = Math.ceil(cumulativeRemaining / perDay);
-        completionDate = addDays(today, daysNeeded);
-      }
+      const completionDate = perakim.length ? perakim[perakim.length - 1].completionDate : null;
 
       return {
         ...m,
+        completed,
+        remaining,
         completionDate,
-        alreadyDone: m.remaining === 0
+        alreadyDone: remaining === 0,
+        perakim
       };
     });
   }
@@ -1521,6 +1547,29 @@ const Renderer = (() => {
           <td>${completionText}</td>
         `;
         els.mesechtaTableBody.appendChild(tr);
+
+        if (state.includePerPerekSchedule && Array.isArray(p.perakim)) {
+          p.perakim.forEach(pr => {
+            const subRow = document.createElement("tr");
+            subRow.className = `perek-subrow${pr.alreadyDone ? " row-completed" : ""}`;
+
+            let perekCompletionText;
+            if (pr.alreadyDone) {
+              perekCompletionText = `<span class="badge badge-done"><span class="lang-en"${state.isHebrew ? " hidden" : ""}>Done ✓</span><span class="lang-he"${state.isHebrew ? "" : " hidden"}>הושלם</span></span>`;
+            } else if (pr.completionDate) {
+              perekCompletionText = Calculator.formatDate(pr.completionDate);
+            } else {
+              perekCompletionText = "–";
+            }
+
+            subRow.innerHTML = `
+              <td><span class="perek-label"><span class="lang-en"${showHebNames ? " hidden" : ""}>Perek ${pr.perek}</span><span class="lang-he"${showHebNames ? "" : " hidden"}>פרק ${pr.perek}</span></span></td>
+              <td>${pr.mishnayos}</td>
+              <td>${perekCompletionText}</td>
+            `;
+            els.mesechtaTableBody.appendChild(subRow);
+          });
+        }
       });
     });
 
@@ -1621,6 +1670,7 @@ const Share = (() => {
       progress:  state.completedProgress,
       hebrew:    state.isHebrew,
       heNames:   state.hebrewNames,
+      perPerek:  state.includePerPerekSchedule,
     };
     const json = JSON.stringify(payload);
     // btoa requires a binary string; encode via encodeURIComponent first.
@@ -1692,8 +1742,13 @@ const Share = (() => {
       // boolean flags
       const isHebrew  = p.hebrew  === true;
       const hebrewNames = p.heNames === true;
+      let includePerPerekSchedule = false;
+      if (p.perPerek !== undefined) {
+        if (typeof p.perPerek !== "boolean") return null;
+        includePerPerekSchedule = p.perPerek;
+      }
 
-      return { mode: p.mode, pace, targetDate, sedarim, progress, isHebrew, hebrewNames };
+      return { mode: p.mode, pace, targetDate, sedarim, progress, isHebrew, hebrewNames, includePerPerekSchedule };
     } catch (_) {
       return null;
     }
@@ -1711,6 +1766,7 @@ const Share = (() => {
     state.completedProgress = payload.progress;
     state.isHebrew      = payload.isHebrew;
     state.hebrewNames   = payload.hebrewNames;
+    state.includePerPerekSchedule = payload.includePerPerekSchedule;
 
     // Sync DOM inputs — all assignments go through .value / .checked, never innerHTML
     const modeRadio = document.querySelector(`input[name="schedule-mode"][value="${payload.mode}"]`);
@@ -1725,6 +1781,9 @@ const Share = (() => {
     const nameLangVal = payload.hebrewNames ? "hebrew" : "english";
     const nameLangRadio = document.querySelector(`input[name="name-lang"][value="${nameLangVal}"]`);
     if (nameLangRadio) nameLangRadio.checked = true;
+
+    const perPerekCheckbox = document.getElementById("include-per-perek-schedule");
+    if (perPerekCheckbox) perPerekCheckbox.checked = payload.includePerPerekSchedule;
 
     // Seder checkboxes
     MISHNA_DATA.sedarim.forEach((_, idx) => {
@@ -2206,6 +2265,8 @@ const Main = (() => {
       state.dailyPace = pace;
     }
 
+    state.includePerPerekSchedule = document.getElementById("include-per-perek-schedule").checked;
+
     // Sync any unsaved inputs
     syncGridInputsToState();
 
@@ -2255,6 +2316,7 @@ const Main = (() => {
     state.targetDate = null;
     state.dailyPace = 3;
     state.scheduleMode = "daily-pace";
+    state.includePerPerekSchedule = false;
     state.activeSederIndex = -1;
     state.hebrewNames = false;
     // Reset goal to all sedarim selected
