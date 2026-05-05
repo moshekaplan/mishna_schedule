@@ -1517,6 +1517,11 @@ const Renderer = (() => {
 
     let isFirst = true;
     groups.forEach((masechtos, sederIdx) => {
+      const pendingMasechtos = masechtos.filter(p => !p.alreadyDone);
+      if (pendingMasechtos.length === 0) {
+        return;
+      }
+
       const seder = MISHNA_DATA.sedarim[sederIdx];
 
       // Seder group header row (spans all 3 data columns)
@@ -1528,14 +1533,11 @@ const Renderer = (() => {
       isFirst = false;
 
       // Individual mesechta rows
-      masechtos.forEach(p => {
+      pendingMasechtos.forEach(p => {
         const tr = document.createElement("tr");
-        if (p.alreadyDone) tr.classList.add("row-completed");
 
         let completionText;
-        if (p.alreadyDone) {
-          completionText = `<span class="badge badge-done"><span class="lang-en"${state.isHebrew ? " hidden" : ""}>Done ✓</span><span class="lang-he"${state.isHebrew ? "" : " hidden"}>הושלם</span></span>`;
-        } else if (p.completionDate) {
+        if (p.completionDate) {
           completionText = `<span class="badge badge-pending">${Calculator.formatDate(p.completionDate)}</span>`;
         } else {
           completionText = "–";
@@ -1549,14 +1551,12 @@ const Renderer = (() => {
         els.mesechtaTableBody.appendChild(tr);
 
         if (state.includePerPerekSchedule && Array.isArray(p.perakim)) {
-          p.perakim.forEach(pr => {
+          p.perakim.filter(pr => !pr.alreadyDone).forEach(pr => {
             const subRow = document.createElement("tr");
-            subRow.className = `perek-subrow${pr.alreadyDone ? " row-completed" : ""}`;
+            subRow.className = "perek-subrow";
 
             let perekCompletionText;
-            if (pr.alreadyDone) {
-              perekCompletionText = `<span class="badge badge-done"><span class="lang-en"${state.isHebrew ? " hidden" : ""}>Done ✓</span><span class="lang-he"${state.isHebrew ? "" : " hidden"}>הושלם</span></span>`;
-            } else if (pr.completionDate) {
+            if (pr.completionDate) {
               perekCompletionText = Calculator.formatDate(pr.completionDate);
             } else {
               perekCompletionText = "–";
