@@ -1092,7 +1092,7 @@ const MISHNA_DATA = {
    ============================================================ */
 
 /**
- * completedCounts: maps "seder_index-mesechta_index" → completed count (number)
+ * completedProgress: maps "seder_index-mesechta_index" → { perek: number, mishna: number }
  * scheduleMode: "target-date" | "daily-pace"
  * targetDate: Date | null
  * dailyPace: number
@@ -1100,7 +1100,7 @@ const MISHNA_DATA = {
  * activeSederIndex: number (which tab is selected in the progress section)
  */
 const state = {
-  completedCounts: {},   // e.g. { "0-0": 30 }  (sederIdx-mesechtaIdx)
+  completedProgress: {},   // e.g. { "0-0": { perek: 3, mishna: 5 } }  (sederIdx-mesechtaIdx)
   scheduleMode: "daily-pace",  targetDate: null,
   dailyPace: 3,
   isHebrew: false,
@@ -1133,13 +1133,37 @@ const TOTAL_MISHNAYOS = ALL_MASECHTOS.reduce((sum, m) => sum + m.mishnayos_count
 
 const Calculator = (() => {
 
-  /** Returns number of completed Mishnayos for a given key */
+  /** Returns number of completed Mishnayos for a given key (based on perek+mishna progress) */
   function getCompleted(sederIdx, mesechtaIdx) {
     const key = `${sederIdx}-${mesechtaIdx}`;
-    return Math.min(
-      state.completedCounts[key] || 0,
-      ALL_MASECHTOS.find(m => m.sederIdx === sederIdx && m.mesechtaIdx === mesechtaIdx).mishnayos_count
-    );
+    const mesechta = ALL_MASECHTOS.find(m => m.sederIdx === sederIdx && m.mesechtaIdx === mesechtaIdx);
+    if (!mesechta) return 0;
+
+    const progress = state.completedProgress[key];
+    if (!progress || !progress.perek || !progress.mishna) return 0;
+
+    // Find the perek and sum up all mishnayos up to that perek + the mishna count
+    let completed = 0;
+    for (let p = 1; p < progress.perek; p++) {
+      const perekData = mesechta.perakim.find(x => x.perek === p);
+      if (perekData) completed += perekData.mishnayos;
+    }
+
+    // Add mishnayos from the current perek (mishna is 1-indexed, represents "up to" not completed)
+    const currentPerekData = mesechta.perakim.find(x => x.perek === progress.perek);
+    if (currentPerekData) {
+      // Special case: if at the last mishna of the last perek, consider it complete for projections
+      if (progress.perek === mesechta.perakim.length && progress.mishna === currentPerekData.mishnayos) {
+        return mesechta.mishnayos_count;
+      }
+      // If mishna is beyond the last mishna of the last perek, consider it complete
+      if (progress.perek === mesechta.perakim.length && progress.mishna > currentPerekData.mishnayos) {
+        return mesechta.mishnayos_count;
+      }
+      completed += Math.max(0, progress.mishna - 1);
+    }
+
+    return Math.min(completed, mesechta.mishnayos_count);
   }
 
   /** Returns only the masechtos that belong to the user's selected sedarim goal */
@@ -1221,7 +1245,17 @@ const Calculator = (() => {
 
     return goalMasechtos.map(m => {
       const completed = getCompleted(m.sederIdx, m.mesechtaIdx);
-      const remaining = m.mishnayos_count - completed;
+      let remaining = m.mishnayos_count - completed;
+
+      // Special case: if user has selected the last mishna, treat as complete for projections
+      const progress = state.completedProgress[`${m.sederIdx}-${m.mesechtaIdx}`];
+      if (progress && progress.perek === m.perakim.length) {
+        const lastPerekData = m.perakim[m.perakim.length - 1];
+        if (progress.mishna === lastPerekData.mishnayos) {
+          remaining = 0;
+        }
+      }
+
       return { ...m, completed, remaining };
     }).map((m, idx, arr) => {
       // Cumulative remaining up to and including this mesechta
@@ -1575,7 +1609,7 @@ const Share = (() => {
                    return v || null;
                  })(),
       sedarim:   Array.from(state.selectedSedarim),
-      counts:    state.completedCounts,
+      progress:  state.completedProgress,
       hebrew:    state.isHebrew,
       heNames:   state.hebrewNames,
     };
@@ -1624,25 +1658,33 @@ const Share = (() => {
         sedarim.add(idx);
       }
 
-      // completedCounts: object with "N-N" keys and integer values
-      if (typeof p.counts !== "object" || p.counts === null || Array.isArray(p.counts)) return null;
-      const counts = {};
-      for (const [key, val] of Object.entries(p.counts)) {
+      // completedProgress: object with "N-N" keys and {perek, mishna} objects
+      if (typeof p.progress !== "object" || p.progress === null || Array.isArray(p.progress)) return null;
+      const progress = {};
+      for (const [key, val] of Object.entries(p.progress)) {
         // key must match "sederIdx-mesechtaIdx" for a real mesechta
         if (!/^\d+-\d+$/.test(key)) return null;
         const [si, mi] = key.split("-").map(Number);
         const mesechta = ALL_MASECHTOS.find(m => m.sederIdx === si && m.mesechtaIdx === mi);
         if (!mesechta) return null;
-        const count = parseInt(val, 10);
-        if (!Number.isInteger(count) || count < 0 || count > mesechta.mishnayos_count) return null;
-        counts[key] = count;
+        // val must be an object with perek and mishna
+        if (typeof val !== "object" || val === null || Array.isArray(val)) return null;
+        const perek = parseInt(val.perek, 10);
+        const mishna = parseInt(val.mishna, 10);
+        if (!Number.isInteger(perek) || perek < 1 || perek > mesechta.perakim.length) return null;
+        const perekData = mesechta.perakim.find(p => p.perek === perek);
+        if (!perekData) return null;
+        // Allow mishna to be up to last + 1 for completion indication
+        const maxMishna = perek === mesechta.perakim.length ? perekData.mishnayos + 1 : perekData.mishnayos;
+        if (!Number.isInteger(mishna) || mishna < 1 || mishna > maxMishna) return null;
+        progress[key] = { perek, mishna };
       }
 
       // boolean flags
       const isHebrew  = p.hebrew  === true;
       const hebrewNames = p.heNames === true;
 
-      return { mode: p.mode, pace, targetDate, sedarim, counts, isHebrew, hebrewNames };
+      return { mode: p.mode, pace, targetDate, sedarim, progress, isHebrew, hebrewNames };
     } catch (_) {
       return null;
     }
@@ -1657,7 +1699,7 @@ const Share = (() => {
     state.dailyPace     = payload.pace;
     state.targetDate    = payload.targetDate;
     state.selectedSedarim = payload.sedarim;
-    state.completedCounts = payload.counts;
+    state.completedProgress = payload.progress;
     state.isHebrew      = payload.isHebrew;
     state.hebrewNames   = payload.hebrewNames;
 
@@ -1681,10 +1723,12 @@ const Share = (() => {
       if (cb) cb.checked = payload.sedarim.has(idx);
     });
 
-    // Mesechta number inputs
-    for (const [key, count] of Object.entries(payload.counts)) {
-      const input = document.getElementById(`mc-${key}`);
-      if (input) input.value = String(count);
+    // Mesechta perek/mishna selectors
+    for (const [key, prog] of Object.entries(payload.progress)) {
+      const perekSelect = document.getElementById(`mc-perek-${key}`);
+      const mishnaSelect = document.getElementById(`mc-mishna-${key}`);
+      if (perekSelect) perekSelect.value = String(prog.perek);
+      if (mishnaSelect) mishnaSelect.value = String(prog.mishna);
     }
   }
 
@@ -1758,12 +1802,21 @@ const PDF = (() => {
 
 const Main = (() => {
 
-  /** Reads all mesechta input values from the DOM into state */
+  /** Reads all mesechta perek/mishna selector values from the DOM into state */
   function syncGridInputsToState() {
-    document.querySelectorAll("[data-key]").forEach(input => {
-      const key = input.dataset.key;
-      const value = parseInt(input.value, 10);
-      state.completedCounts[key] = isNaN(value) || value < 0 ? 0 : value;
+    document.querySelectorAll("[data-type='perek'], [data-type='mishna']").forEach(select => {
+      const key = select.dataset.key;
+      const perekSelect = document.querySelector(`#mc-perek-${key}`);
+      const mishnaSelect = document.querySelector(`#mc-mishna-${key}`);
+
+      if (perekSelect && mishnaSelect) {
+        const perek = parseInt(perekSelect.value, 10);
+        const mishna = parseInt(mishnaSelect.value, 10);
+        state.completedProgress[key] = {
+          perek: isNaN(perek) ? 1 : perek,
+          mishna: isNaN(mishna) ? 1 : mishna
+        };
+      }
     });
   }
 
@@ -1877,11 +1930,37 @@ const Main = (() => {
         const pct = Math.round((completed / m.mishnayos_count) * 100);
         const isDone = completed >= m.mishnayos_count;
 
+        // Get current perek and mishna from state
+        const progress = state.completedProgress[key] || { perek: 1, mishna: 1 };
+
+        // Handle the case where progress indicates completion (mishna beyond last)
+        let displayPerek = progress.perek;
+        let displayMishna = progress.mishna;
+        const lastPerekData = m.perakim[m.perakim.length - 1];
+        if (progress.perek === lastPerekData.perek && progress.mishna > lastPerekData.mishnayos) {
+          // User has completed the mesechta - show last perek, last mishna in UI
+          displayPerek = lastPerekData.perek;
+          displayMishna = lastPerekData.mishnayos;
+        }
+
         const card = document.createElement("article");
         card.className = `mesechta-card${isDone ? " completed" : ""}`;
-        card.setAttribute("aria-label", `${m.name_en}: ${completed} of ${m.mishnayos_count} completed`);
+        card.setAttribute("aria-label", `${m.name_en}: Perek ${displayPerek}, Mishna ${displayMishna}`);
 
         const showHebNow = state.isHebrew || state.hebrewNames;
+
+        // Build perek options
+        const perekOptions = m.perakim.map(p =>
+          `<option value="${p.perek}" ${displayPerek === p.perek ? "selected" : ""}>Perek ${p.perek}</option>`
+        ).join("");
+
+        // Build mishna options for current perek (1-indexed: 1 to mishnaCount)
+        const currentPerekData = m.perakim.find(p => p.perek === displayPerek);
+        const mishnaCount = currentPerekData ? currentPerekData.mishnayos : 0;
+        const mishnaOptions = Array.from({length: mishnaCount}, (_, i) =>
+          `<option value="${i + 1}" ${displayMishna === i + 1 ? "selected" : ""}>Mishna ${i + 1}</option>`
+        ).join("");
+
         card.innerHTML = `
           <div class="mesechta-name name-en"${showHebNow ? " hidden" : ""}>${m.name_en}</div>
           <div class="mesechta-name mesechta-name-he name-he"${showHebNow ? "" : " hidden"}>${m.name_he}</div>
@@ -1899,20 +1978,26 @@ const Main = (() => {
             <span class="lang-he" ${state.isHebrew ? "" : "hidden"}>סמן כהושלם</span>
           </label>
           <div class="mesechta-input-wrap">
-            <label for="mc-${key}">
-              <span class="lang-en">Completed (#)</span>
-              <span class="lang-he" ${state.isHebrew ? "" : "hidden"}>מספר שהושלם</span>
-            </label>
-            <input
-              type="number"
-              id="mc-${key}"
-              data-key="${key}"
-              min="0"
-              max="${m.mishnayos_count}"
-              step="1"
-              value="${completed}"
-              aria-label="Completed Mishnayos in ${m.name_en}, max ${m.mishnayos_count}"
-            />
+            <div class="progress-selectors">
+              <div class="selector-group">
+                <label for="mc-perek-${key}">
+                  <span class="lang-en">Perek</span>
+                  <span class="lang-he" ${state.isHebrew ? "" : "hidden"}>פרק</span>
+                </label>
+                <select id="mc-perek-${key}" data-key="${key}" data-type="perek" class="perek-select" aria-label="Select perek for ${m.name_en}">
+                  ${perekOptions}
+                </select>
+              </div>
+              <div class="selector-group">
+                <label for="mc-mishna-${key}">
+                  <span class="lang-en">Mishna</span>
+                  <span class="lang-he" ${state.isHebrew ? "" : "hidden"}>משנה</span>
+                </label>
+                <select id="mc-mishna-${key}" data-key="${key}" data-type="mishna" class="mishna-select" aria-label="Select mishna for ${m.name_en}">
+                  ${mishnaOptions}
+                </select>
+              </div>
+            </div>
           </div>
           <div class="mesechta-mini-bar-wrap" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="${m.name_en} progress ${pct}%">
             <div class="mesechta-mini-bar-fill" style="width:${pct}%"></div>
@@ -1928,25 +2013,45 @@ const Main = (() => {
     });
   }
 
-  /** Attaches change listeners to all mesechta number inputs and complete checkboxes in the grid */
+  /** Attaches change listeners to all perek/mishna selectors and complete checkboxes in the grid */
   function attachGridInputListeners() {
-    // Number inputs
-    document.querySelectorAll("[data-key]").forEach(input => {
-      input.addEventListener("input", () => {
-        const key = input.dataset.key;
+    // Perek and mishna selectors
+    document.querySelectorAll("[data-type='perek'], [data-type='mishna']").forEach(select => {
+      select.addEventListener("change", () => {
+        const key = select.dataset.key;
         const [si, mi] = key.split("-").map(Number);
         const mesechta = ALL_MASECHTOS.find(m => m.sederIdx === si && m.mesechtaIdx === mi);
         if (!mesechta) return;
 
-        let value = parseInt(input.value, 10);
-        if (isNaN(value) || value < 0) value = 0;
-        if (value > mesechta.mishnayos_count) value = mesechta.mishnayos_count;
+        // Get current perek and mishna values
+        const perekSelect = document.querySelector(`#mc-perek-${key}`);
+        const mishnaSelect = document.querySelector(`#mc-mishna-${key}`);
 
-        state.completedCounts[key] = value;
-        input.value = value;
+        const perek = parseInt(perekSelect.value, 10);
+        let mishna = parseInt(mishnaSelect.value, 10);
 
-        const pct = Math.round((value / mesechta.mishnayos_count) * 100);
-        const card = input.closest(".mesechta-card");
+        // If perek changed, regenerate mishna options
+        if (select.dataset.type === "perek") {
+          const currentPerekData = mesechta.perakim.find(p => p.perek === perek);
+          const mishnaCount = currentPerekData ? currentPerekData.mishnayos : 0;
+
+          // Rebuild mishna options (1-indexed: 1 to mishnaCount)
+          mishnaSelect.innerHTML = Array.from({length: mishnaCount}, (_, i) =>
+            `<option value="${i + 1}">Mishna ${i + 1}</option>`
+          ).join("");
+          mishna = 1; // Reset to 1 when perek changes
+          mishnaSelect.value = 1;
+        }
+
+        // Store the progress
+        state.completedProgress[key] = { perek, mishna };
+
+        // Update the card display
+        const completed = Calculator.getCompleted(si, mi);
+        const pct = Math.round((completed / mesechta.mishnayos_count) * 100);
+        const isDone = completed >= mesechta.mishnayos_count;
+
+        const card = select.closest(".mesechta-card");
         if (card) {
           const bar = card.querySelector(".mesechta-mini-bar-fill");
           if (bar) bar.style.width = `${pct}%`;
@@ -1954,17 +2059,17 @@ const Main = (() => {
           const barWrap = card.querySelector(".mesechta-mini-bar-wrap");
           if (barWrap) barWrap.setAttribute("aria-valuenow", pct);
 
-          if (value >= mesechta.mishnayos_count) {
+          if (isDone) {
             card.classList.add("completed");
           } else {
             card.classList.remove("completed");
           }
-          card.setAttribute("aria-label", `${mesechta.name_en}: ${value} of ${mesechta.mishnayos_count} completed`);
+          card.setAttribute("aria-label", `${mesechta.name_en}: Perek ${perek}, Mishna ${mishna}`);
 
           // Sync the "mark complete" checkbox
           const completeCheckbox = card.querySelector("[data-complete-key]");
           if (completeCheckbox) {
-            completeCheckbox.checked = value >= mesechta.mishnayos_count;
+            completeCheckbox.checked = isDone;
           }
         }
 
@@ -1981,23 +2086,54 @@ const Main = (() => {
         const mesechta = ALL_MASECHTOS.find(m => m.sederIdx === si && m.mesechtaIdx === mi);
         if (!mesechta) return;
 
-        const value = cb.checked ? mesechta.mishnayos_count : 0;
-        state.completedCounts[key] = value;
+        if (cb.checked) {
+          // Mark as fully complete: set to last perek, one beyond the last mishna
+          const lastPerekData = mesechta.perakim[mesechta.perakim.length - 1];
+          state.completedProgress[key] = {
+            perek: lastPerekData.perek,
+            mishna: lastPerekData.mishnayos + 1
+          };
 
-        // Sync the number input
-        const numInput = document.getElementById(`mc-${key}`);
-        if (numInput) numInput.value = value;
+          // Update selectors - show the last valid options
+          const perekSelect = document.querySelector(`#mc-perek-${key}`);
+          const mishnaSelect = document.querySelector(`#mc-mishna-${key}`);
+          if (perekSelect) perekSelect.value = lastPerekData.perek;
+          if (mishnaSelect) {
+            mishnaSelect.innerHTML = Array.from({length: lastPerekData.mishnayos}, (_, i) =>
+              `<option value="${i + 1}" ${i + 1 === lastPerekData.mishnayos ? "selected" : ""}>Mishna ${i + 1}</option>`
+            ).join("");
+          }
+        } else {
+          // Mark as not complete: reset to perek 1, mishna 1
+          state.completedProgress[key] = { perek: 1, mishna: 1 };
 
-        const pct = cb.checked ? 100 : 0;
+          // Update selectors
+          const perekSelect = document.querySelector(`#mc-perek-${key}`);
+          const mishnaSelect = document.querySelector(`#mc-mishna-${key}`);
+          if (perekSelect) perekSelect.value = 1;
+          if (mishnaSelect) {
+            const firstPerekData = mesechta.perakim.find(p => p.perek === 1);
+            const mishnaCount = firstPerekData ? firstPerekData.mishnayos : 0;
+            mishnaSelect.innerHTML = Array.from({length: mishnaCount}, (_, i) =>
+              `<option value="${i + 1}">Mishna ${i + 1}</option>`
+            ).join("");
+          }
+        }
+
+        const completed = Calculator.getCompleted(si, mi);
+        const pct = Math.round((completed / mesechta.mishnayos_count) * 100);
+        const isDone = completed >= mesechta.mishnayos_count;
+
         const card = cb.closest(".mesechta-card");
         if (card) {
           const bar = card.querySelector(".mesechta-mini-bar-fill");
           if (bar) bar.style.width = `${pct}%`;
           const barWrap = card.querySelector(".mesechta-mini-bar-wrap");
           if (barWrap) barWrap.setAttribute("aria-valuenow", pct);
-          if (cb.checked) card.classList.add("completed");
+          if (isDone) card.classList.add("completed");
           else card.classList.remove("completed");
-          card.setAttribute("aria-label", `${mesechta.name_en}: ${value} of ${mesechta.mishnayos_count} completed`);
+          const progress = state.completedProgress[key];
+          card.setAttribute("aria-label", `${mesechta.name_en}: Perek ${progress.perek}, Mishna ${progress.mishna}`);
         }
 
         Renderer.renderProgressSummary();
@@ -2106,7 +2242,7 @@ const Main = (() => {
   function handleReset() {
     document.getElementById("export-pdf").hidden = true;
     document.getElementById("share-schedule").hidden = true;
-    state.completedCounts = {};
+    state.completedProgress = {};
     state.targetDate = null;
     state.dailyPace = 3;
     state.scheduleMode = "daily-pace";
