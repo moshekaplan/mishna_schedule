@@ -1637,9 +1637,9 @@ const Share = (() => {
       // scheduleMode
       if (p.mode !== "daily-pace" && p.mode !== "target-date") return null;
 
-      // dailyPace: integer 1–500
-      const pace = parseInt(p.pace, 10);
-      if (!Number.isInteger(pace) || pace < 1 || pace > 500) return null;
+      // dailyPace: number 1–500 (may be fractional)
+      const pace = parseFloat(p.pace);
+      if (Number.isNaN(pace) || pace < 1 || pace > 500) return null;
 
       // targetDate: YYYY-MM-DD or null
       let targetDate = null;
@@ -2187,7 +2187,7 @@ const Main = (() => {
       state.targetDate = new Date(rawDate + "T00:00:00");
     } else {
       const rawPace = document.getElementById("daily-pace").value;
-      const pace = parseInt(rawPace, 10);
+      const pace = parseFloat(rawPace);
       if (isNaN(pace) || pace < 1) {
         Renderer.showError(Renderer.els.dailyPaceError, "Please enter a valid daily pace (minimum 1).");
         document.getElementById("daily-pace").classList.add("invalid");
