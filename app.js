@@ -1791,12 +1791,28 @@ const Share = (() => {
       if (cb) cb.checked = payload.sedarim.has(idx);
     });
 
-    // Mesechta perek/mishna selectors
+    // Mesechta perek/mishna selectors and complete checkbox state
     for (const [key, prog] of Object.entries(payload.progress)) {
       const perekSelect = document.getElementById(`mc-perek-${key}`);
       const mishnaSelect = document.getElementById(`mc-mishna-${key}`);
       if (perekSelect) perekSelect.value = String(prog.perek);
-      if (mishnaSelect) mishnaSelect.value = String(prog.mishna);
+      if (mishnaSelect) {
+        const requestedValue = String(prog.mishna);
+        if (Array.from(mishnaSelect.options).some(o => o.value === requestedValue)) {
+          mishnaSelect.value = requestedValue;
+        } else if (mishnaSelect.options.length > 0) {
+          mishnaSelect.value = mishnaSelect.options[mishnaSelect.options.length - 1].value;
+        }
+      }
+
+      const completeCheckbox = document.getElementById(`mc-done-${key}`);
+      if (completeCheckbox) {
+        const mesechta = ALL_MASECHTOS.find(m => m.sederIdx === Number(key.split("-")[0]) && m.mesechtaIdx === Number(key.split("-")[1]));
+        if (mesechta) {
+          const lastPerekData = mesechta.perakim[mesechta.perakim.length - 1];
+          completeCheckbox.checked = prog.mishna > lastPerekData.mishnayos;
+        }
+      }
     }
   }
 
@@ -2421,6 +2437,8 @@ const Main = (() => {
     if (sharedPayload) {
       Share.applyPayload(sharedPayload);
       Language.applyLanguage();
+      Main.renderSederGoalCheckboxes();
+      Main.attachGridInputListeners();
       handleModeChange();
       Renderer.renderProgressSummary();
       document.getElementById("settings-form").requestSubmit();
